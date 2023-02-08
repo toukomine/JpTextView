@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+    id 'signing'
 }
 
 android {
@@ -38,4 +40,60 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+// add publish script
+publishing {
+    publications {
+        release(MavenPublication) {
+            pom {
+                name = 'JpTextView'
+                description = 'Android 日语注音TextView'
+                url = 'https://github.com/toukomine/JpTextView'
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'JpTextView'
+                        name = 'toukomine'
+                        email = 'toukomine@outlook.com'
+                    }
+                }
+
+                scm {
+                    connection = 'https://github.com/toukomine/JpTextView.git'
+                    developerConnection = 'https://github.com/toukomine/JpTextView.git'
+                    url = 'https://github.com/toukomine/JpTextView'
+                }
+            }
+
+            groupId "io.github.toukomine"
+            artifactId "JpTextView"
+            version "1.0.0"
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+    repositories {
+        maven {
+            url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            credentials {
+                username NEXUS_USERNAME // ossrhUsername is your sonatype username
+                password NEXUS_PASSWORD // ossrhUsername is your sonatype password
+            }
+        }
+    }
+}
+
+// signing, this need key, secret, we put it into gradle.properties
+signing {
+    sign publishing.publications.release
 }
