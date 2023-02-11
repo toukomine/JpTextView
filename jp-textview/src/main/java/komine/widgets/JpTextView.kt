@@ -5,11 +5,10 @@ import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Build
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
-import androidx.annotation.RequiresApi
+import java.nio.channels.FileLock
 
 /**
  * 日语假名标注TextView
@@ -22,7 +21,7 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
     /**
      * 源字符串
      */
-    private var text:String = ""
+    private var mSourceText:String = ""
 
     /**
      * 存放假名和索引的集合
@@ -44,7 +43,7 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
     private var textHeight = 0
     init {
         val array = context.obtainStyledAttributes(attributeSet, R.styleable.JpTextView)
-        text = array.getString(R.styleable.JpTextView_sourceText) ?: ""
+        mSourceText = array.getString(R.styleable.JpTextView_sourceText) ?: ""
         mTextColor = array.getColor(R.styleable.JpTextView_sourceTextColor,mTextColor)
         mTextSize = array.getDimension(R.styleable.JpTextView_sourceTextSize,mTextSize)
 
@@ -77,6 +76,39 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
         requestLayout()
     }
 
+    fun setText(text:String){
+        mSourceText = text
+        requestLayout()
+    }
+
+    fun getText():String{
+        return mSourceText
+    }
+
+    fun setSourceTextSize(size:Int){
+        mTextPaint.textSize = size.toFloat()
+    }
+
+    fun getSourceTextSize():Float{
+        return mTextPaint.textSize
+    }
+
+    fun setKanaTextSize(size:Int){
+        mKanaPaint.textSize = size.toFloat()
+    }
+
+    fun setOneMark(enable:Boolean){
+        mOneMark = enable
+    }
+
+    fun getOneMark():Boolean{
+        return mOneMark
+    }
+
+    fun getKanaTextSize():Float{
+        return mKanaPaint.textSize
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val parentWidthSize = MeasureSpec.getSize(widthMeasureSpec)
@@ -92,10 +124,10 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
         var maxHeight = 0
 
         var needWrap = false
-        val textWidth = mTextPaint.measureText(text).toInt()
+        val textWidth = mTextPaint.measureText(mSourceText).toInt()
 
         if(widthMode == MeasureSpec.AT_MOST){
-            width = mTextPaint.measureText(text).toInt()
+            width = mTextPaint.measureText(mSourceText).toInt()
             maxWidth = parentWidthSize
             if(width > parentWidthSize){
                 width = parentWidthSize
@@ -133,17 +165,17 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
             return
         }
 
-        val singleTextWidth = mTextPaint.measureText(text,0,1)
+        val singleTextWidth = mTextPaint.measureText(mSourceText,0,1)
         val oneLineTextCount = maxWidth / singleTextWidth.toInt()
         val lineNumber = maxHeight / textHeight
 
         var currentIndex = 0
-        var sumCount = text.length
+        var sumCount = mSourceText.length
         while (sumCount > 0){
             if(sumCount >= oneLineTextCount){
-                mSourceTextList.add(text.substring(currentIndex,currentIndex + oneLineTextCount))
+                mSourceTextList.add(mSourceText.substring(currentIndex,currentIndex + oneLineTextCount))
             }else{
-                mSourceTextList.add(text.substring(currentIndex,currentIndex + sumCount))
+                mSourceTextList.add(mSourceText.substring(currentIndex,currentIndex + sumCount))
             }
             if(mSourceTextList.size >= lineNumber){
                 break
@@ -153,7 +185,6 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     override fun onDraw(canvas: Canvas) {
         canvas.drawColor(mBackgroundColor)
         drawText(canvas)
@@ -163,8 +194,8 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
         val kanaDy = (mTextPaint.fontMetricsInt.bottom - mTextPaint.fontMetricsInt.top) / 2 - mTextPaint.fontMetricsInt.bottom
 
         if(mSourceTextList.isEmpty()){
-            drawKanaText(canvas, text,(kanaTextHeight / 2f) + kanaDy)
-            canvas.drawText(text,0f, (kanaTextHeight + textHeight).toFloat(),mTextPaint)
+            drawKanaText(canvas, mSourceText,(kanaTextHeight / 2f) + kanaDy)
+            canvas.drawText(mSourceText,0f, (kanaTextHeight + textHeight).toFloat(),mTextPaint)
         }else{
             val lineHeight = kanaTextHeight + textHeight
             var offsetY = lineHeight.toFloat()
@@ -197,7 +228,7 @@ class JpTextView(context: Context,attributeSet: AttributeSet?):View(context,attr
         }
     }
 
-    private fun findKeywordIndex(startIndex:Int,text: String,drawText:String? = this.text):Int{
+    private fun findKeywordIndex(startIndex:Int,text: String,drawText:String? = this.mSourceText):Int{
         if(drawText == null){
             return -1
         }
